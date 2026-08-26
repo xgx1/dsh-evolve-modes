@@ -6,6 +6,8 @@
 
 No fork of DeepSeek Harness. No duplicate agent loop. Install the plugin, choose a combination, and keep that decision visible in every session.
 
+> Release `0.3.2` supports DeepSeek Harness `0.1.1-rc.2` only. If you remain on Harness `0.1.0-rc.6`, install plugin `0.3.1`.
+
 [中文文档](README.md)
 
 ![dsh-evolve-modes](https://raw.githubusercontent.com/GraySilver/dsh-evolve-modes/main/assets/social-preview.png)
@@ -66,7 +68,7 @@ Git-hosted plugins execute install-time code, so install only revisions you trus
 - **No hidden rewriting.** Reviews identify evidence, gaps, and concrete follow-up actions, but never silently alter, retry, or fix the parent answer.
 - **Propose before activation.** The learning agent may only create evidence-backed proposals. A rule reaches the system prompt only after human approval.
 - **A plugin-owned Settings page.** The top-level Self-evolution mode page manages global learning thresholds, pending proposals, rules, backups, and learning runs.
-- **Plugin-first distribution.** Install the GitHub release tarball, audit a pinned Git revision when needed, and leave DeepSeek Harness core untouched.
+- **Plugin-first distribution.** Install a pinned npm release, audit a pinned Git revision when needed, and leave DeepSeek Harness core untouched.
 
 ![Evolve-mode review panel](https://raw.githubusercontent.com/GraySilver/dsh-evolve-modes/main/assets/evolve-modes-review.png)
 
@@ -176,6 +178,8 @@ Quality review requires DSH's fork/subagent capability; self-evolution analysis 
 | `0.3.0` and earlier | Not revalidated | Unsupported; upgrade recommended |
 
 Starting with `0.3.2`, every plugin release updates this table and declares its machine-readable minimum Harness version through `peerDependencies`.
+
+Release `0.3.2` uses the command attachment argument and strict storage-domain types introduced by Harness `0.1.1-rc.2`, so it is not backward-compatible with `0.1.0-rc.6`. Pin both the plugin and Harness versions in production instead of relying on floating tags.
 
 Requires a DeepSeek Harness release that provides the Web plugin loader, client UI slots, storage domains, the direct `llm` service, forked subagents for quality review, the official Plan mode service, and the DSH tools pipeline. Pinned npm releases are the recommended stable distribution channel; pinned Git revisions remain useful for source auditing and development.
 

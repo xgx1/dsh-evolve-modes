@@ -5,7 +5,6 @@
 <p align="center">
   <a href="https://github.com/GraySilver/dsh-evolve-modes/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/GraySilver/dsh-evolve-modes/actions/workflows/ci.yml/badge.svg?branch=main"></a>
   <a href="https://www.npmjs.com/package/@graysilver/dsh-evolve-modes"><img alt="npm" src="https://img.shields.io/npm/v/@graysilver/dsh-evolve-modes?style=flat-square&label=npm"></a>
-  <a href="https://github.com/GraySilver/dsh-evolve-modes/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/GraySilver/dsh-evolve-modes?style=flat-square&label=release"></a>
   <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-4D6BFE?style=flat-square"></a>
   <img alt="DeepSeek Harness" src="https://img.shields.io/badge/DeepSeek%20Harness-0.1.1--rc.2-4D6BFE?style=flat-square">
 </p>
@@ -15,6 +14,8 @@
 **dsh-evolve-modes** 是 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的独立 Web 插件。它在输入区提供一个紧凑的工作流控制项，让你组合 Agent 的工作状态、思考策略、质量门禁和自进化行为。
 
 插件不 fork DeepSeek Harness，不复制 Agent loop，也不修改核心代码。安装后，当前任务使用的组合始终显示在输入区旁；全局“自进化模式”设置则负责管理跨会话的学习提议和已批准规则。
+
+> 当前版本 `0.3.2` 仅支持 DeepSeek Harness `0.1.1-rc.2`。仍使用 Harness `0.1.0-rc.6` 时，请安装插件 `0.3.1`。
 
 ![dsh-evolve-modes](https://raw.githubusercontent.com/GraySilver/dsh-evolve-modes/main/assets/social-preview.png)
 
@@ -191,6 +192,8 @@ Concrete follow-up
 | `0.3.0` 及更早版本 | 未重新验证 | 不再支持，建议升级 |
 
 从 `0.3.2` 起，每次插件发布都会同步更新此表，并通过 `peerDependencies` 声明机器可读的最低 Harness 版本。
+
+`0.3.2` 使用了 Harness `0.1.1-rc.2` 新增的命令附件参数和严格 storage domain 类型，因此不向后兼容 `0.1.0-rc.6`。生产环境建议同时固定插件与 Harness 版本，不要依赖浮动标签。
 
 bundle 会自动选择平台 shell。只有目标 profile 已注册该工具时才覆盖：
 

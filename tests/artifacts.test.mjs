@@ -48,8 +48,8 @@ test('mounts reviews beneath their matching completed turn', async () => {
       effect: (effect) => effect(),
       inject: (_dependencies, effect) => effect(ctx),
       locale: { register: () => () => {} },
-      remote: { $mount: () => () => {}, commands: { execute: async (sessionId, line) => {
-        calls.push([sessionId, line])
+      remote: { $mount: () => () => {}, commands: { execute: async (sessionId, line, images) => {
+        calls.push([sessionId, line, images])
         return { ok: true, value: { result: { kind: 'success', text: JSON.stringify({
           turn: 7,
           profile: 'acceptance-review',
@@ -84,7 +84,7 @@ test('mounts reviews beneath their matching completed turn', async () => {
       text: '## Verdict\n\nPass',
       createdAt: 123,
     })
-    assert.deepEqual(calls, [['session-1', '/evolve-mode-review 7']])
+    assert.deepEqual(calls, [['session-1', '/evolve-mode-review 7', []]])
   } finally {
     delete globalThis.window
   }
@@ -103,8 +103,8 @@ test('exposes independent working, reasoning, quality, and evolution command con
       effect: effect => effect(),
       inject: (_dependencies, effect) => effect(ctx),
       locale: { register: () => () => {} },
-      remote: { $mount: () => () => {}, commands: { execute: async (sessionId, line) => {
-        calls.push([sessionId, line])
+      remote: { $mount: () => () => {}, commands: { execute: async (sessionId, line, images) => {
+        calls.push([sessionId, line, images])
         return { ok: true, value: { result: { kind: 'success', text: stateText } } }
       } } },
       conversationEvents: { register: () => () => {} },
@@ -131,12 +131,12 @@ test('exposes independent working, reasoning, quality, and evolution command con
     assert.deepEqual(await face.setEvolution('off'), expected)
     assert.deepEqual(await face.setBatchSize(5), expected)
     assert.deepEqual(calls, [
-      ['session-axes', '/evolve-mode'],
-      ['session-axes', '/evolve-mode working plan'],
-      ['session-axes', '/evolve-mode reasoning standard'],
-      ['session-axes', '/evolve-mode quality general-review'],
-      ['session-axes', '/evolve-mode evolution off'],
-      ['session-axes', '/evolve-mode evolution batch-size 5'],
+      ['session-axes', '/evolve-mode', []],
+      ['session-axes', '/evolve-mode working plan', []],
+      ['session-axes', '/evolve-mode reasoning standard', []],
+      ['session-axes', '/evolve-mode quality general-review', []],
+      ['session-axes', '/evolve-mode evolution off', []],
+      ['session-axes', '/evolve-mode evolution batch-size 5', []],
     ])
 
     const artifact = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8')

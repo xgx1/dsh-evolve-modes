@@ -7,7 +7,7 @@
   <a href="https://www.npmjs.com/package/@graysilver/dsh-evolve-modes"><img alt="npm" src="https://img.shields.io/npm/v/@graysilver/dsh-evolve-modes?style=flat-square&label=npm"></a>
   <a href="https://github.com/GraySilver/dsh-evolve-modes/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/GraySilver/dsh-evolve-modes?style=flat-square&label=release"></a>
   <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-4D6BFE?style=flat-square"></a>
-  <img alt="DeepSeek Harness" src="https://img.shields.io/badge/DeepSeek%20Harness-0.1.0--rc.6-4D6BFE?style=flat-square">
+  <img alt="DeepSeek Harness" src="https://img.shields.io/badge/DeepSeek%20Harness-0.1.1--rc.2-4D6BFE?style=flat-square">
 </p>
 
 > 让 Agent 的工作方式可组合、可审查、可持续改进，最终实现 Agent Self Evoling。
@@ -23,19 +23,13 @@
 推荐通过 npm 将固定版本安装到 DeepSeek Harness Web profile：
 
 ```sh
-npx -y @deepseek-ai/dsh plugin --profile web add @graysilver/dsh-evolve-modes@0.3.1
+npx -y @deepseek-ai/dsh plugin --profile web add @graysilver/dsh-evolve-modes@0.3.2
 ```
 
 如果已经全局安装 DSH CLI，可以使用简写：
 
 ```sh
-dsh plugin --profile web add @graysilver/dsh-evolve-modes@0.3.1
-```
-
-也可以直接安装对应的 GitHub Release 包：
-
-```sh
-dsh plugin --profile web add https://github.com/GraySilver/dsh-evolve-modes/releases/download/v0.3.1/graysilver-dsh-evolve-modes-0.3.1.tgz
+dsh plugin --profile web add @graysilver/dsh-evolve-modes@0.3.2
 ```
 
 重启 Web profile 后，自进化模式控件会出现在输入区工具旁。打开顶层 **自进化模式** 设置即可管理全局学习规则。
@@ -189,6 +183,14 @@ Concrete follow-up
 旧的单一模式别名仍可迁移：`normal`、`first-principles` 和 `adversarial-review`。它们会把工作状态转换为执行，并按旧模式映射推理方式和质量门禁；当前自进化设置会保留。
 
 ## 配置与兼容性
+
+| 插件版本 | DeepSeek Harness 版本 | 状态 |
+| --- | --- | --- |
+| `0.3.2` | `0.1.1-rc.2` | 当前支持并经过安装、类型、构建和 Web 冒烟验证 |
+| `0.3.1` | `0.1.0-rc.6` | 历史兼容版本 |
+| `0.3.0` 及更早版本 | 未重新验证 | 不再支持，建议升级 |
+
+从 `0.3.2` 起，每次插件发布都会同步更新此表，并通过 `peerDependencies` 声明机器可读的最低 Harness 版本。
 
 bundle 会自动选择平台 shell。只有目标 profile 已注册该工具时才覆盖：
 

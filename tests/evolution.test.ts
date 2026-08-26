@@ -14,6 +14,7 @@ import {
 import type { EvolutionLearningInput } from '../src/evolution/prompt.ts'
 import type { EvolutionStore } from '../src/evolution/store.ts'
 import { EMPTY_EVOLUTION_STATE, migrateRenamedEvolutionState } from '../src/evolution/store.ts'
+import { DEFAULT_EVOLUTION_CONFIG, evolutionStateSchema } from '../src/evolution/schema.ts'
 import { migrateRenamedModeRecords, normalizeRecord, recordFor } from '../src/storage.ts'
 import type { StoredEvolveModeRecord } from '../src/storage.ts'
 import type { EvolutionState } from '../src/types.ts'
@@ -138,6 +139,19 @@ describe('self-evolution learning messages', () => {
 })
 
 describe('self-evolution defaults', () => {
+  it('defaults config when reading state written before global scheduling', () => {
+    const { config: _config, ...legacyState } = structuredClone(EMPTY_EVOLUTION_STATE)
+    const parsed = evolutionStateSchema.parse({
+      ...legacyState,
+      runs: [{
+        id: 'legacy-run', sessionId: 'session-a', projectRoot: '/old/project', turns: [1],
+        status: 'completed', proposalCount: 0, error: null, createdAt: 1,
+      }],
+    })
+    expect(parsed.config).toEqual(DEFAULT_EVOLUTION_CONFIG)
+    expect(parsed.runs[0]).not.toHaveProperty('projectRoot')
+  })
+
   it('enables proposal learning for a new session and learns every three completed replies', () => {
     const records = fakeRecords([])
     expect(recordFor(records, 'new-session')).toMatchObject({

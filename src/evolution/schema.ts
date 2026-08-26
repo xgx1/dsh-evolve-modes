@@ -5,6 +5,11 @@ export const evolutionConfigSchema = z.object({
   maxPendingProposals: z.number().int().min(1).max(1000),
 })
 
+export const DEFAULT_EVOLUTION_CONFIG: z.infer<typeof evolutionConfigSchema> = {
+  learningBatchSize: 3,
+  maxPendingProposals: 100,
+}
+
 export const evolutionEvidenceSchema = z.object({
   sessionId: z.string().min(1),
   turn: z.number().int().nonnegative(),
@@ -58,12 +63,12 @@ export const evolutionLearningRunSchema = z.object({
   proposalCount: z.number().int().nonnegative(),
   error: z.string().nullable(),
   createdAt: z.number().int().nonnegative(),
-})
+}).transform(({ projectRoot: _projectRoot, ...run }) => run)
 
 export const evolutionStateSchema = z.object({
   revision: z.number().int().nonnegative(),
-  // Optional keeps state written by versions before global scheduling was added readable.
-  config: evolutionConfigSchema.optional(),
+  // The default keeps state written before global scheduling readable while making parsed state complete.
+  config: evolutionConfigSchema.default(DEFAULT_EVOLUTION_CONFIG),
   settings: z.array(evolutionSettingSchema),
   proposals: z.array(evolutionProposalSchema),
   backups: z.array(evolutionBackupSchema),

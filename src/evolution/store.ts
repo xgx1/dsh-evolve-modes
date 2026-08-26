@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import type { DomainGlobal } from '@deepseek-ai/dsh-storage-domain'
+import type { DomainGlobal, DomainGlobalSpec } from '@deepseek-ai/dsh-storage-domain'
 import { defineDomain } from '@deepseek-ai/dsh-storage-domain'
 import type {
   EvolutionAction,
@@ -15,14 +15,11 @@ import type {
   EvolutionSettingMutation,
   EvolutionState,
 } from '../types.ts'
-import { evolutionStateSchema } from './schema.ts'
+import { DEFAULT_EVOLUTION_CONFIG, evolutionStateSchema } from './schema.ts'
 
 export const EMPTY_EVOLUTION_STATE: EvolutionState = {
   revision: 0,
-  config: {
-    learningBatchSize: 3,
-    maxPendingProposals: 100,
-  },
+  config: DEFAULT_EVOLUTION_CONFIG,
   settings: [],
   proposals: [],
   backups: [],
@@ -30,11 +27,16 @@ export const EMPTY_EVOLUTION_STATE: EvolutionState = {
   updatedAt: 0,
 }
 
+const evolutionGlobalSpec: DomainGlobalSpec<EvolutionState> = {
+  schema: evolutionStateSchema,
+  initial: EMPTY_EVOLUTION_STATE,
+}
+
 /** Plugin-owned cross-session learned-instruction state. */
 export const evolutionDomain = defineDomain({
   name: 'graysilver_dsh_evolve_modes_evolution',
   version: 1,
-  global: { schema: evolutionStateSchema, initial: EMPTY_EVOLUTION_STATE },
+  global: evolutionGlobalSpec,
   tables: {},
 })
 
@@ -42,7 +44,7 @@ export const evolutionDomain = defineDomain({
 export const legacyEvolutionDomain = defineDomain({
   name: 'graysilver_task_modes_evolution',
   version: 1,
-  global: { schema: evolutionStateSchema, initial: EMPTY_EVOLUTION_STATE },
+  global: evolutionGlobalSpec,
   tables: {},
 })
 
@@ -58,10 +60,8 @@ export interface EvolutionProposalDraft {
   readonly evidence: readonly EvolutionEvidence[]
 }
 
-const DEFAULT_CONFIG: EvolutionConfig = EMPTY_EVOLUTION_STATE.config
-
 /** Convert state from the project-scoped release line to the global model. */
-function normalizeState(value: EvolutionState & { readonly config?: EvolutionConfig }): EvolutionState {
+function normalizeState(value: EvolutionState): EvolutionState {
   const normalize = <T extends { readonly scope: EvolutionScope; readonly projectRoot: string | null }>(item: T): T => ({
     ...item,
     scope: 'global',
@@ -69,7 +69,6 @@ function normalizeState(value: EvolutionState & { readonly config?: EvolutionCon
   })
   return {
     ...value,
-    config: value.config === undefined ? DEFAULT_CONFIG : value.config,
     settings: value.settings.map(normalize),
     proposals: value.proposals.map(normalize),
     backups: value.backups.map(normalize),
@@ -91,8 +90,8 @@ export async function migrateRenamedEvolutionState(
   target: DomainGlobal<EvolutionState>,
   legacy: DomainGlobal<EvolutionState>,
 ): Promise<void> {
-  const current = normalizeState(target.get() as EvolutionState & { readonly config?: EvolutionConfig })
-  const previous = normalizeState(legacy.get() as EvolutionState & { readonly config?: EvolutionConfig })
+  const current = normalizeState(target.get())
+  const previous = normalizeState(legacy.get())
   if (isPristineState(current) && !isPristineState(previous)) await target.set(previous)
 }
 
@@ -144,7 +143,7 @@ export class EvolutionStore {
   constructor(private readonly global: DomainGlobal<EvolutionState>) {}
 
   state(): EvolutionState {
-    return normalizeState(this.global.get() as EvolutionState & { readonly config?: EvolutionConfig })
+    return normalizeState(this.global.get())
   }
 
   config(): EvolutionConfig {

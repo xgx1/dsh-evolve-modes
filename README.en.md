@@ -41,10 +41,10 @@ This is not a collection of mutually exclusive modes. It is a small operating mo
 
 ## Install in One Command
 
-Install the GitHub release tarball into the DeepSeek Harness Web profile:
+Install the pinned npm release into the DeepSeek Harness Web profile:
 
 ```sh
-dsh plugin --profile web add https://github.com/GraySilver/dsh-evolve-modes/releases/download/v0.3.1/graysilver-dsh-evolve-modes-0.3.1.tgz
+dsh plugin --profile web add @graysilver/dsh-evolve-modes@0.3.2
 ```
 
 Restart the Web profile. The self-evolution mode control appears beside the composer tools.
@@ -169,7 +169,15 @@ Quality review requires DSH's fork/subagent capability; self-evolution analysis 
 
 ## Compatibility
 
-Requires a DeepSeek Harness release that provides the Web plugin loader, client UI slots, storage domains, the direct `llm` service, forked subagents for quality review, the official Plan mode service, and the DSH tools pipeline. GitHub release tarballs are the recommended stable distribution channel; pinned Git revisions remain useful for source auditing and development.
+| Plugin version | DeepSeek Harness version | Status |
+| --- | --- | --- |
+| `0.3.2` | `0.1.1-rc.2` | Current; verified by installation, type-checking, build, and Web smoke tests |
+| `0.3.1` | `0.1.0-rc.6` | Historical compatibility release |
+| `0.3.0` and earlier | Not revalidated | Unsupported; upgrade recommended |
+
+Starting with `0.3.2`, every plugin release updates this table and declares its machine-readable minimum Harness version through `peerDependencies`.
+
+Requires a DeepSeek Harness release that provides the Web plugin loader, client UI slots, storage domains, the direct `llm` service, forked subagents for quality review, the official Plan mode service, and the DSH tools pipeline. Pinned npm releases are the recommended stable distribution channel; pinned Git revisions remain useful for source auditing and development.
 
 ## Feedback
 

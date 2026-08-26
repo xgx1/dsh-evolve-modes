@@ -673,7 +673,7 @@ export function apply(ctx: ClientContext): void {
   ctx.conversationEvents.register(firstPrinciplesTrajectoryDefinition)
   ctx.conversationEvents.register(learnedInstructionsTrajectoryDefinition)
   const execute = async (sessionId: string, line: string): Promise<string> => {
-    const response = await ctx.remote.commands.execute(sessionId as never, line)
+    const response = await ctx.remote.commands.execute(sessionId as never, line, [])
     if (!response.ok) throw new Error(`${response.error.message} (${response.error.code})`)
     if (response.value === undefined) throw new Error(`unknown command: ${line}`)
     if (response.value.result.kind === 'error') throw new Error(response.value.result.text)

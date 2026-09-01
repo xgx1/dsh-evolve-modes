@@ -15,7 +15,7 @@
 
 插件不 fork DeepSeek Harness，不复制 Agent loop，也不修改核心代码。安装后，当前任务使用的组合始终显示在输入区旁；全局“自进化模式”设置则负责管理跨会话的学习提议和已批准规则。
 
-> 当前版本 `0.3.2` 仅支持 DeepSeek Harness `0.1.1-rc.2`。仍使用 Harness `0.1.0-rc.6` 时，请安装插件 `0.3.1`。
+> 当前版本 `0.4.0` 支持 DeepSeek Harness `0.1.1-rc.2`。仍使用 Harness `0.1.0-rc.6` 时，请安装插件 `0.3.1`。
 
 ![dsh-evolve-modes](https://raw.githubusercontent.com/GraySilver/dsh-evolve-modes/main/assets/social-preview.png)
 
@@ -24,13 +24,13 @@
 推荐通过 npm 将固定版本安装到 DeepSeek Harness Web profile：
 
 ```sh
-npx -y @deepseek-ai/dsh plugin --profile web add @graysilver/dsh-evolve-modes@0.3.2
+npx -y @deepseek-ai/dsh plugin --profile web add @graysilver/dsh-evolve-modes@0.4.0
 ```
 
 如果已经全局安装 DSH CLI，可以使用简写：
 
 ```sh
-dsh plugin --profile web add @graysilver/dsh-evolve-modes@0.3.2
+dsh plugin --profile web add @graysilver/dsh-evolve-modes@0.4.0
 ```
 
 重启 Web profile 后，自进化模式控件会出现在输入区工具旁。打开顶层 **自进化模式** 设置即可管理全局学习规则。
@@ -57,7 +57,7 @@ Git 安装包会执行安装期代码，请只安装可信 revision。
 | 维度 | 选项 | 作用 |
 | --- | --- | --- |
 | **工作状态** | 正常 · 计划 | 立即完成任务，或进入官方 DSH 计划工作流。 |
-| **思考策略** | 标准 · 第一性原理 | 正常回答，或显式梳理目标、事实、假设、约束、推导和验证。 |
+| **思考策略** | 标准 · 第一性原理 · Grilling | 正常回答、显式梳理第一性原理，或通过分轮追问压力测试需求和决策。 |
 | **质量门禁** | 关 · 对抗性审查 · 验收审查 | 不增加审查，独立寻找风险，或对照任务和已批准计划验收结果。 |
 | **自进化** | 关 · 开 | 自动分析会话，生成待人工审阅的规则提议，自动优化AGENTS.md（但不改动 AGENTS.md）|
 
@@ -154,9 +154,10 @@ Concrete follow-up
 
 审查报告会显示在对应的助手回复下方。质量审查每个完成的父回复增加一次模型调用和相应延迟，但不会自动执行项目的 test、lint 或 build 命令。
 
-## 第一性原理与计划
+## 思考策略与计划
 
 - **第一性原理**：将目标、事实、假设、约束、推导和验证写入 `request/header.system`；Trajectory 会保留同一段指令作为可检查证据。关闭后只影响后续请求，历史证据不会被删除。
+- **Grilling**：先建立决策及其依赖关系，每轮只提出前置条件已经明确的问题；问题使用编号列表并附推荐答案。Agent 会自行调查可发现的事实，在所有分支明确后总结共同理解并等待用户确认，确认前不会实施。确认后仍按当前“正常/计划”工作模式继续。
 - **计划模式**：委托给官方 `@deepseek-ai/dsh-plan-mode` service，复用 DSH 的计划持久化和 `exit_plan_mode` 审批流程，不重复实现另一套计划系统。
 - **工具策略**：计划和质量审查通过 DSH 的 `tools/pre-execute` pipeline 控制工具；默认允许 `read`、`glob`、`grep`、`read_image`、已配置的平台 shell 和 `exit_plan_mode`。这是一层工作流策略，不是操作系统级 sandbox。
 
@@ -170,6 +171,7 @@ Concrete follow-up
 /evolve-mode working plan
 /evolve-mode reasoning standard
 /evolve-mode reasoning first-principles
+/evolve-mode reasoning grilling
 /evolve-mode quality off
 /evolve-mode quality general-review
 /evolve-mode quality acceptance-review
@@ -187,7 +189,8 @@ Concrete follow-up
 
 | 插件版本 | DeepSeek Harness 版本 | 状态 |
 | --- | --- | --- |
-| `0.3.2` | `0.1.1-rc.2` | 当前支持并经过安装、类型、构建和 Web 冒烟验证 |
+| `0.4.0` | `0.1.1-rc.2` | 当前支持；新增 Grilling，并通过类型、构建、自动化和打包验证 |
+| `0.3.2` | `0.1.1-rc.2` | 历史兼容版本 |
 | `0.3.1` | `0.1.0-rc.6` | 历史兼容版本 |
 | `0.3.0` 及更早版本 | 未重新验证 | 不再支持，建议升级 |
 
@@ -213,4 +216,4 @@ Bug 和功能建议请提交到 [GitHub Issues](https://github.com/GraySilver/ds
 
 ## 许可证
 
-MIT
+MIT。本项目的 Grilling 思考策略改编自 Matt Pocock 的 [Grilling skill](https://github.com/mattpocock/skills/blob/main/skills/productivity/grilling/SKILL.md)，第三方版权与许可见 [`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md)。

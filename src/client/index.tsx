@@ -31,7 +31,7 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime, InjectFace } from '@deepseek-ai/dsh-client-ui-slots'
-import { FIRST_PRINCIPLES } from '../prompt.ts'
+import { FIRST_PRINCIPLES, GRILLING } from '../prompt.ts'
 import type {
   EvolutionCategory,
   EvolutionConfig,
@@ -122,6 +122,14 @@ function qualityLabel(quality: QualityGate, t: ControlProps['t']): string {
   }
 }
 
+function reasoningLabel(reasoning: ReasoningMode, t: ControlProps['t']): string {
+  switch (reasoning) {
+    case 'standard': return t('standard')
+    case 'first-principles': return t('firstPrinciples')
+    case 'grilling': return t('grilling')
+  }
+}
+
 function evolutionLabel(evolution: EvolutionMode, t: ControlProps['t']): string {
   return evolution === 'off' ? t('evolutionOff') : t('evolutionPropose')
 }
@@ -181,7 +189,7 @@ function EvolveModeControl({ getState, setWorking, setReasoning, setQuality, set
   const reasoning = state?.reasoning ?? 'standard'
   const quality = state?.quality ?? 'off'
   const evolution = state?.evolution ?? 'off'
-  const summary = `${working === 'execute' ? t('execute') : t('plan')} · ${reasoning === 'standard' ? t('standard') : t('firstPrinciples')} · ${qualityLabel(quality, t)} · ${t('evolutionSummary')} ${evolutionLabel(evolution, t)}`
+  const summary = `${working === 'execute' ? t('execute') : t('plan')} · ${reasoningLabel(reasoning, t)} · ${qualityLabel(quality, t)} · ${t('evolutionSummary')} ${evolutionLabel(evolution, t)}`
   const menuItems: MenuEntry[] = [
     { type: 'label', id: 'working-label', text: t('workingLabel') },
     { id: 'working.execute', label: t('execute'), icon: <IconCheckOutline14 /> },
@@ -190,6 +198,7 @@ function EvolveModeControl({ getState, setWorking, setReasoning, setQuality, set
     { type: 'label', id: 'reasoning-label', text: t('reasoningLabel') },
     { id: 'reasoning.standard', label: t('standard'), icon: <IconCheckOutline14 /> },
     { id: 'reasoning.first-principles', label: t('firstPrinciples'), icon: <IconThinkOutline14 /> },
+    { id: 'reasoning.grilling', label: t('grilling'), icon: <IconThinkOutline14 /> },
     { type: 'separator', id: 'quality-separator' },
     { type: 'label', id: 'quality-label', text: t('qualityLabel') },
     { id: 'quality.off', label: qualityLabel('off', t), icon: <IconCheckOutline14 /> },
@@ -225,6 +234,8 @@ function EvolveModeControl({ getState, setWorking, setReasoning, setQuality, set
           change('reasoning', () => setReasoning('standard'))
         } else if (id === 'reasoning.first-principles' && reasoning !== 'first-principles') {
           change('reasoning', () => setReasoning('first-principles'))
+        } else if (id === 'reasoning.grilling' && reasoning !== 'grilling') {
+          change('reasoning', () => setReasoning('grilling'))
         } else if (id === 'quality.off' && quality !== 'off') {
           change('quality', () => setQuality('off'))
         } else if (id === 'quality.general-review' && quality !== 'general-review') {
@@ -328,6 +339,31 @@ const firstPrinciplesTrajectoryDefinition: ConversationNodeDefinition<ContextMes
   buildViewNode: trajectoryContextNode,
 }
 
+const grillingTrajectoryDefinition: ConversationNodeDefinition<ContextMessageNode> = {
+  kind: 'evolve-mode-grilling-injection',
+  target: 'trajectory',
+  match: event => event.type === 'request/header'
+    && event.data.header.system?.includes(GRILLING) === true
+    ? { id: String(event.seq), role: 'start' }
+    : null,
+  start: (_context, match) => {
+    if (match.event.type !== 'request/header') {
+      throw new Error('grilling Trajectory projection requires request/header')
+    }
+    return {
+      kind: 'context',
+      seq: match.event.seq,
+      time: match.event.time,
+      content: [{ type: 'text', text: GRILLING }],
+      source: { kind: 'plugin', plugin: 'dsh-evolve-modes:grilling' },
+      provenance: { role: 'inject', label: 'dsh-evolve-modes:grilling' },
+      form: null,
+    }
+  },
+  update: context => context.state,
+  buildViewNode: trajectoryContextNode,
+}
+
 function learnedInstructionBlock(system: string | undefined): string | undefined {
   if (system === undefined) return undefined
   const start = system.indexOf('<dsh-evolve-modes-learned-instructions>')
@@ -372,6 +408,7 @@ const en = {
   reasoningLabel: 'Reasoning strategy',
   standard: 'Standard',
   firstPrinciples: 'First principles',
+  grilling: 'Grilling',
   qualityLabel: 'Quality gate',
   qualityOff: 'Off',
   generalReview: 'Adversarial review',
@@ -431,6 +468,7 @@ const zh: typeof en = {
   reasoningLabel: '思考策略',
   standard: '标准',
   firstPrinciples: '第一性原理',
+  grilling: 'Grilling',
   qualityLabel: '审查',
   qualityOff: '关',
   generalReview: '对抗性审查',
@@ -498,7 +536,7 @@ function parseState(text: string): ModeState {
   const learningBatchSize = Number(values.get('learning-batch-size'))
   const pendingEvolutionTurns = Number(values.get('pending-evolution-turns'))
   if ((working !== 'execute' && working !== 'plan')
-    || (reasoning !== 'standard' && reasoning !== 'first-principles')
+    || (reasoning !== 'standard' && reasoning !== 'first-principles' && reasoning !== 'grilling')
     || (quality !== 'off' && quality !== 'general-review' && quality !== 'acceptance-review')
     || (evolution !== 'off' && evolution !== 'propose')
     || !Number.isSafeInteger(learningBatchSize) || learningBatchSize < 1 || learningBatchSize > 100
@@ -671,6 +709,7 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register('evolveModes', { en, zh }), 'dsh-evolve-modes: locale')
   ctx.effect(() => ctx.remote.$mount(evolveModesRemote), 'dsh-evolve-modes: evolution Remote')
   ctx.conversationEvents.register(firstPrinciplesTrajectoryDefinition)
+  ctx.conversationEvents.register(grillingTrajectoryDefinition)
   ctx.conversationEvents.register(learnedInstructionsTrajectoryDefinition)
   const execute = async (sessionId: string, line: string): Promise<string> => {
     const response = await ctx.remote.commands.execute(sessionId as never, line, [])

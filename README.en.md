@@ -6,7 +6,7 @@
 
 No fork of DeepSeek Harness. No duplicate agent loop. Install the plugin, choose a combination, and keep that decision visible in every session.
 
-> Release `0.3.2` supports DeepSeek Harness `0.1.1-rc.2` only. If you remain on Harness `0.1.0-rc.6`, install plugin `0.3.1`.
+> Release `0.4.0` supports DeepSeek Harness `0.1.1-rc.2`. If you remain on Harness `0.1.0-rc.6`, install plugin `0.3.1`.
 
 [中文文档](README.md)
 
@@ -25,7 +25,7 @@ Open it to compose four independent dimensions:
 | Decision | Options | What it changes |
 | --- | --- | --- |
 | **Working state** | Execute · Plan | Choose immediate execution or the official DSH planning workflow. |
-| **Reasoning strategy** | Standard · First principles | Work normally, or require explicit objectives, facts, assumptions, constraints, derivation, and verification. |
+| **Reasoning strategy** | Standard · First principles · Grilling | Work normally, reason explicitly from first principles, or stress-test requirements and decisions through rounds of questions. |
 | **Quality gate** | Off · Adversarial review · Acceptance review | Skip review, challenge the answer independently, or check it against the task and an approved plan. |
 | **Self-evolution** | Off · Propose | Skip long-term analysis, or by default create human-reviewed rule proposals after every 3 completed parent-agent replies. |
 
@@ -46,7 +46,7 @@ This is not a collection of mutually exclusive modes. It is a small operating mo
 Install the pinned npm release into the DeepSeek Harness Web profile:
 
 ```sh
-dsh plugin --profile web add @graysilver/dsh-evolve-modes@0.3.2
+dsh plugin --profile web add @graysilver/dsh-evolve-modes@0.4.0
 ```
 
 Restart the Web profile. The self-evolution mode control appears beside the composer tools.
@@ -118,6 +118,8 @@ Plan review does not delay or gate official `exit_plan_mode` approval. When the 
 
 The First principles section is persisted in `request/header.system`. Trajectory projects that exact section as a context-style inspection row, so historical requests show the instruction the model received. It does not append a user message or create an artificial transcript event. Turning the strategy off removes the section from later requests while earlier rows remain as historical evidence.
 
+Grilling maps decisions and their prerequisites, asks only the currently ready questions in numbered rounds, and includes a recommendation for every question. The agent investigates discoverable facts itself. Once every relevant branch is resolved, it summarizes the shared understanding and waits for explicit confirmation before acting; after confirmation, the current Execute or Plan working state still controls how work proceeds. Its injected instruction is also preserved in Trajectory.
+
 ### Review behavior and limits
 
 Both reviewers can inspect with `read`, `glob`, `grep`, `read_image`, and the configured platform shell. Their prompts request non-mutating inspection, but prompt restrictions are not an operating-system sandbox. A review failure is persisted as unavailable and never blocks the parent response or Plan approval.
@@ -144,6 +146,7 @@ Use these commands in the Web composer or through the command API:
 /evolve-mode working plan
 /evolve-mode reasoning standard
 /evolve-mode reasoning first-principles
+/evolve-mode reasoning grilling
 /evolve-mode quality off
 /evolve-mode quality general-review
 /evolve-mode quality acceptance-review
@@ -173,7 +176,8 @@ Quality review requires DSH's fork/subagent capability; self-evolution analysis 
 
 | Plugin version | DeepSeek Harness version | Status |
 | --- | --- | --- |
-| `0.3.2` | `0.1.1-rc.2` | Current; verified by installation, type-checking, build, and Web smoke tests |
+| `0.4.0` | `0.1.1-rc.2` | Current; adds Grilling and passes type, build, automated, and package verification |
+| `0.3.2` | `0.1.1-rc.2` | Historical compatibility release |
 | `0.3.1` | `0.1.0-rc.6` | Historical compatibility release |
 | `0.3.0` and earlier | Not revalidated | Unsupported; upgrade recommended |
 
@@ -189,4 +193,4 @@ Please use [GitHub Issues](https://github.com/GraySilver/dsh-evolve-modes/issues
 
 ## License
 
-MIT
+MIT. The Grilling reasoning strategy is adapted from Matt Pocock's [Grilling skill](https://github.com/mattpocock/skills/blob/main/skills/productivity/grilling/SKILL.md). See [`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md) for third-party copyright and license terms.

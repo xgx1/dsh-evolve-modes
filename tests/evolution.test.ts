@@ -15,7 +15,7 @@ import type { EvolutionLearningInput } from '../src/evolution/prompt.ts'
 import type { EvolutionStore } from '../src/evolution/store.ts'
 import { EMPTY_EVOLUTION_STATE, migrateRenamedEvolutionState } from '../src/evolution/store.ts'
 import { DEFAULT_EVOLUTION_CONFIG, evolutionStateSchema } from '../src/evolution/schema.ts'
-import { migrateRenamedModeRecords, normalizeRecord, recordFor } from '../src/storage.ts'
+import { migrateRenamedModeRecords, normalizeRecord, recordFor, setReasoning } from '../src/storage.ts'
 import type { StoredEvolveModeRecord } from '../src/storage.ts'
 import type { EvolutionState } from '../src/types.ts'
 
@@ -169,6 +169,14 @@ describe('self-evolution defaults', () => {
       reasoning: 'standard', quality: 'off', evolution: 'off',
       pendingEvolutionTurns: [], updatedAt: 0, reviews: [],
     })).toMatchObject({ evolution: 'off' })
+  })
+
+  it('persists grilling as an independent reasoning choice without changing other axes', async () => {
+    const records = fakeRecords([])
+    const result = await setReasoning(records, 'session-a', 'grilling')
+
+    expect(result).toMatchObject({ reasoning: 'grilling', quality: 'off', evolution: 'propose' })
+    expect(recordFor(records, 'session-a')).toMatchObject({ reasoning: 'grilling' })
   })
 
   it('copies renamed session records without overwriting new-domain choices', async () => {

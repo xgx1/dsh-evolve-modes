@@ -18,8 +18,9 @@ const reviewSchema = z.object({
   createdAt: z.number().int().nonnegative(),
 }).strict()
 const legacyReviewSchema = reviewSchema.omit({ profile: true })
+const reasoningSchema = z.enum(['standard', 'first-principles', 'grilling'])
 const legacyEvolutionRecordSchema = z.object({
-  reasoning: z.enum(['standard', 'first-principles']),
+  reasoning: reasoningSchema,
   quality: z.enum(['off', 'general-review', 'acceptance-review']),
   evolution: z.enum(['off', 'propose']),
   learningBatchSize: z.number().int().min(1).max(100),
@@ -28,7 +29,7 @@ const legacyEvolutionRecordSchema = z.object({
   reviews: z.array(reviewSchema),
 }).strict()
 const recordSchema = z.object({
-  reasoning: z.enum(['standard', 'first-principles']),
+  reasoning: reasoningSchema,
   quality: z.enum(['off', 'general-review', 'acceptance-review']),
   evolution: z.enum(['off', 'propose']),
   pendingEvolutionTurns: z.array(z.number().int().nonnegative()),
@@ -36,7 +37,7 @@ const recordSchema = z.object({
   reviews: z.array(reviewSchema),
 }).strict()
 const axesRecordSchema = z.object({
-  reasoning: z.enum(['standard', 'first-principles']),
+  reasoning: reasoningSchema,
   quality: z.enum(['off', 'general-review', 'acceptance-review']),
   updatedAt: z.number().int().nonnegative(),
   reviews: z.array(reviewSchema),

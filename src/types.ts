@@ -1,5 +1,5 @@
 /** Reasoning guidance selected for one persisted session. */
-export type ReasoningMode = 'standard' | 'first-principles'
+export type ReasoningMode = 'standard' | 'first-principles' | 'grilling'
 
 /** Independent post-turn quality gate selected for one persisted session. */
 export type QualityGate = 'off' | 'general-review' | 'acceptance-review'

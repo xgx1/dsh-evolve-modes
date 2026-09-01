@@ -1,4 +1,4 @@
-export type ReasoningMode = 'standard' | 'first-principles'
+export type ReasoningMode = 'standard' | 'first-principles' | 'grilling'
 export type QualityGate = 'off' | 'general-review' | 'acceptance-review'
 export type ReviewProfile = Exclude<QualityGate, 'off'>
 export type EvolutionMode = 'off' | 'propose'

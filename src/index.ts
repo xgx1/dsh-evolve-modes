@@ -17,7 +17,7 @@ import {
   legacyEvolutionDomain,
   migrateRenamedEvolutionState,
 } from './evolution/store.ts'
-import { FIRST_PRINCIPLES } from './prompt.ts'
+import { FIRST_PRINCIPLES, GRILLING } from './prompt.ts'
 import {
   addReview,
   migrateLegacyRecords,
@@ -155,7 +155,7 @@ async function reviewTurn(
 }
 
 function isReasoningMode(value: string): value is ReasoningMode {
-  return value === 'standard' || value === 'first-principles'
+  return value === 'standard' || value === 'first-principles' || value === 'grilling'
 }
 
 function isQualityGate(value: string): value is QualityGate {
@@ -215,6 +215,12 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
       order: 80,
       text: ({ agent }) => agent !== undefined && stateOf(agent).reasoning === 'first-principles' ? FIRST_PRINCIPLES : '',
     }), 'dsh-evolve-modes: first-principles prompt')
+
+    scope.effect(() => scope.systemPrompt.section({
+      name: 'evolve-mode:grilling',
+      order: 80,
+      text: ({ agent }) => agent !== undefined && stateOf(agent).reasoning === 'grilling' ? GRILLING : '',
+    }), 'dsh-evolve-modes: grilling prompt')
 
     scope.effect(() => scope.systemPrompt.section({
       name: 'evolve-mode:evolution',
@@ -308,7 +314,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         }
         return {
           kind: 'error',
-          text: 'evolve-mode expects working <execute|plan>, reasoning <standard|first-principles>, quality <off|general-review|acceptance-review>, evolution <off|propose>, evolution batch-size <1..100>, evolution max-pending-proposals <1..1000>, review <turn>, reviews, or a legacy mode alias',
+          text: 'evolve-mode expects working <execute|plan>, reasoning <standard|first-principles|grilling>, quality <off|general-review|acceptance-review>, evolution <off|propose>, evolution batch-size <1..100>, evolution max-pending-proposals <1..1000>, review <turn>, reviews, or a legacy mode alias',
         }
       },
     }), 'dsh-evolve-modes: evolve-mode command')

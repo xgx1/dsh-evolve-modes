@@ -209,6 +209,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         `evolution: ${current.evolution}`,
         `learning-batch-size: ${evolutionStore.config().learningBatchSize}`,
         `max-pending-proposals: ${evolutionStore.config().maxPendingProposals}`,
+        `auto-apply: ${evolutionStore.config().autoApply}`,
         `pending-evolution-turns: ${current.pendingEvolutionTurns.length}`,
       ].join('\n')
     }
@@ -289,6 +290,15 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
           await evolutionStore.setConfig({ ...evolutionStore.config(), maxPendingProposals })
           return { kind: 'success', text: stateText(agent) }
         }
+        const autoApplyMatch = /^evolution\s+auto-apply\s+(\S+)$/u.exec(input)
+        if (autoApplyMatch !== null) {
+          const autoApply = autoApplyMatch[1]
+          if (autoApply !== 'on' && autoApply !== 'off') {
+            return { kind: 'error', text: 'evolve-mode evolution auto-apply expects on or off' }
+          }
+          await evolutionStore.setConfig({ ...evolutionStore.config(), autoApply: autoApply === 'on' })
+          return { kind: 'success', text: stateText(agent) }
+        }
 
         const [axis, value, extra] = input.split(/\s+/u)
         if (extra !== undefined) return { kind: 'error', text: 'evolve-mode expects one axis and one value' }
@@ -317,7 +327,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         }
         return {
           kind: 'error',
-          text: 'evolve-mode expects working <execute|plan>, reasoning <standard|first-principles|grilling>, quality <off|general-review|acceptance-review>, evolution <off|propose>, evolution batch-size <1..100>, evolution max-pending-proposals <1..1000>, review <turn>, reviews, or a legacy mode alias',
+          text: 'evolve-mode expects working <execute|plan>, reasoning <standard|first-principles|grilling>, quality <off|general-review|acceptance-review>, evolution <off|propose>, evolution auto-apply <on|off>, evolution batch-size <1..100>, evolution max-pending-proposals <1..1000>, review <turn>, reviews, or a legacy mode alias',
         }
       },
     }), 'dsh-evolve-modes: evolve-mode command')

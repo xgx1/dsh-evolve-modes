@@ -151,6 +151,8 @@ test('exposes independent working, reasoning, quality, and evolution command con
     for (const label of ['正常', '工作模式', '审查', '自进化']) {
       assert.match(artifact, new RegExp(label))
     }
+    assert.match(artifact, /Auto-approve proposals/u)
+    assert.match(artifact, /settingsAutoApply:`自动同意提议`/u)
     assert.match(artifact, /execute:`正常`/u)
     assert.match(artifact, /workingLabel:`工作模式`/u)
     assert.match(artifact, /qualityLabel:`审查`/u)
@@ -190,6 +192,8 @@ test('ships migration, Plan enforcement, and both quality profiles', async () =>
   assert.match(artifact, /name:\s*"evolve-mode:grilling"/u)
   assert.match(artifact, /reasoning <standard\|first-principles\|grilling>/u)
   assert.match(artifact, /evolution\\s\+batch-size/u)
+  assert.match(artifact, /evolution\\s\+auto-apply/u)
+  assert.match(artifact, /autoApply/u)
   assert.match(artifact, /dsh-evolve-modes:evolution-learning/u)
   assert.match(artifact, /validationError/u)
   assert.match(artifact, /mode:\s*"repair"/u)

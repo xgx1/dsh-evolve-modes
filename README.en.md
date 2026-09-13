@@ -8,7 +8,7 @@ No fork of DeepSeek Harness. No duplicate agent loop. Install the plugin, choose
 
 > Release `0.4.0` supports DeepSeek Harness `0.1.1-rc.2`. If you remain on Harness `0.1.0-rc.6`, install plugin `0.3.1`.
 >
-> This fork (`xgx1/dsh-evolve-modes`) is ported to Harness `0.1.5-rc.2`: `deepFreeze` now comes from `@deepseek-ai/dsh-util-values`, Trajectory projections read `system/message`, and the client registers through `uiConversation.events`; the `peerDependencies` floor is raised to `^0.1.5-rc.2` accordingly. Verified end to end (server load plus browser) on `0.1.5-rc.2` (upstream issue #3).
+> This fork (`xgx1/dsh-evolve-modes`) is ported to Harness `0.1.5-rc.2`: `deepFreeze` now comes from `@deepseek-ai/dsh-util-values`, Trajectory projections read `system/message`, and the client registers through `uiConversation.events`; the `peerDependencies` floor is raised to `^0.1.5-rc.2` accordingly. Verified end to end (server load plus browser) on `0.1.5-rc.2` (upstream issue #3). This fork additionally adds a global **Auto-approve** switch (see Reviewable Self-Evolution).
 
 [中文文档](README.md)
 
@@ -96,11 +96,13 @@ Use it when you want a clear handoff from implementation to verification.
 
 ## Reviewable Self-Evolution
 
-Self-evolution is enabled as `Propose` by default. New sessions and older sessions without an explicit self-evolution choice enter learning after every default batch of 3 completed parent-agent replies; sessions explicitly set to Off stay out of the learning pool. The Self-evolution mode Settings page controls both the batch size and the pending-proposal limit globally.
+Self-evolution is enabled as `Propose` by default. New sessions and older sessions without an explicit self-evolution choice enter learning after every default batch of 3 completed parent-agent replies; sessions explicitly set to Off stay out of the learning pool. The Self-evolution mode Settings page controls the batch size, the pending-proposal limit, and automatic approval globally.
 
 Each learning request uses one dedicated persona/system prompt and receives the current batch as exactly one structured JSON user message. It does not inherit parent conversation history or parent Agent work context, does not create a learning subagent, does not carry tools, and does not load `AGENTS.md` or `CLAUDE.md` from the source workspace. The isolated request only looks for identity facts, preferences, and work requirements that remain useful beyond the current task.
 
-Automatic learning never changes future behavior directly. Every add, update, or delete first becomes a pending proposal and requires explicit user approval. Proposal evidence must be copied exactly from user messages. Assistant inference, temporary task details, one-off implementation results, silence, and lack of repetition are not sufficient evidence for a rule or deletion.
+> **Added in this fork: auto-approve.** The **Auto-approve proposals** switch in the Settings page (or `/evolve-mode evolution auto-apply on`) applies every newly learned proposal immediately instead of queueing it. An automatic apply takes the same path as a manual one: a backup is created before every mutation, the rule goes into the global learned instructions, and the Backups section can restore it. The switch defaults to Off; while it is Off the paragraph below is unchanged, and proposals already queued still require a human decision.
+
+Automatic learning never changes future behavior directly unless auto-approve is on. Every add, update, or delete first becomes a pending proposal and requires explicit user approval. Proposal evidence must be copied exactly from user messages. Assistant inference, temporary task details, one-off implementation results, silence, and lack of repetition are not sufficient evidence for a rule or deletion.
 
 All approved rules are global. The plugin injects them into a marked `<dsh-evolve-modes-learned-instructions>` system-prompt section and projects the exact section into Trajectory. The Settings page also supports manual edits, apply or dismiss actions, failed-run inspection, and restoration from backups created before each mutation.
 

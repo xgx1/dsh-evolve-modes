@@ -17,7 +17,7 @@
 
 > 当前版本 `0.4.0` 支持 DeepSeek Harness `0.1.1-rc.2`。仍使用 Harness `0.1.0-rc.6` 时，请安装插件 `0.3.1`。
 >
-> 本 fork（`xgx1/dsh-evolve-modes`）已移植到 Harness `0.1.5-rc.2`：`deepFreeze` 改从 `@deepseek-ai/dsh-util-values` 导入、Trajectory 投影改读 `system/message`、客户端改用 `uiConversation.events`；`peerDependencies` 下限相应提到 `^0.1.5-rc.2`。已在 `0.1.5-rc.2` 上完成服务端加载与浏览器端联调验证（上游 issue #3）。
+> 本 fork（`xgx1/dsh-evolve-modes`）已移植到 Harness `0.1.5-rc.2`：`deepFreeze` 改从 `@deepseek-ai/dsh-util-values` 导入、Trajectory 投影改读 `system/message`、客户端改用 `uiConversation.events`；`peerDependencies` 下限相应提到 `^0.1.5-rc.2`。已在 `0.1.5-rc.2` 上完成服务端加载与浏览器端联调验证（上游 issue #3）。本 fork 另新增全局**自动同意**开关（见下文「自进化模式」）。
 
 ![dsh-evolve-modes](https://raw.githubusercontent.com/GraySilver/dsh-evolve-modes/main/assets/social-preview.png)
 
@@ -76,6 +76,7 @@ Git 安装包会执行安装期代码，请只安装可信 revision。
 | 自进化 | `Propose` | 新会话和没有明确保存自进化选择的旧会话默认开启。 |
 | 学习批次 | `3` | 每累计完成 3 次父 Agent 回复后启动一次学习。可在全局设置中调整为 `1..100`。 |
 | 待审阅提议上限 | `100` | 超过上限时不会继续堆积提议，可在全局设置中调整为 `1..1000`。 |
+| 自动同意 | `关` | **本 fork 新增。** 开启后新提议在学习运行产出时立即自动应用；每次应用前仍创建备份，可在设置页恢复。关闭时与人工审阅流程完全一致。 |
 | 学习范围 | 已开启自进化的源会话 | 不再配置项目范围；当前会话打开自进化，就会纳入学习范围。 |
 | 规则作用域 | 全局 | 应用后的规则跨会话生效，不绑定项目目录。 |
 
@@ -112,6 +113,8 @@ Git 安装包会执行安装期代码，请只安装可信 revision。
         ├─ 应用 → 写入全局 learned instructions
         └─ 忽略 → 不改变后续行为
 ```
+
+> **本 fork 新增：自动同意。** 设置页「全局设置」里的 **自动同意提议** 开关（或命令 `/evolve-mode evolution auto-apply on`）会让学习运行产出的每条新提议**立即自动应用**，不再进入待审阅队列。自动应用与人工点击「应用」走同一条路径：每次变更前创建备份、写入全局 learned instructions，可在「备份」区恢复。默认关闭；关闭时上面的流程一字不变，已积压的待审阅提议仍需人工处理。
 
 在顶层 **自进化模式** 设置页中可以：
 

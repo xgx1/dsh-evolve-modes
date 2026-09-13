@@ -5,6 +5,8 @@ export type EvolutionMode = 'off' | 'propose'
 export interface EvolutionConfig {
   readonly learningBatchSize: number
   readonly maxPendingProposals: number
+  /** Apply every newly learned proposal immediately instead of queueing it for review. */
+  readonly autoApply: boolean
 }
 export type EvolutionScope = 'global' | 'project'
 export type EvolutionCategory = 'identity' | 'preference' | 'work_rule'

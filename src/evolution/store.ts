@@ -157,6 +157,7 @@ export class EvolutionStore {
     if (!Number.isSafeInteger(config.maxPendingProposals) || config.maxPendingProposals < 1 || config.maxPendingProposals > 1000) {
       throw new Error('Pending proposal limit must be an integer from 1 to 1000.')
     }
+    if (typeof config.autoApply !== 'boolean') throw new Error('Automatic approval must be a boolean.')
     await this.mutate((state, _now) => ({
       value: undefined,
       state: { ...state, config },
@@ -181,6 +182,7 @@ export class EvolutionStore {
   ): Promise<number> {
     return this.mutate((state, now) => {
       const proposals = [...state.proposals]
+      const created: string[] = []
       let proposalCount = 0
       for (const draft of drafts) {
         const scope: EvolutionScope = 'global'
@@ -206,9 +208,12 @@ export class EvolutionStore {
           proposalCount += 1
           continue
         }
-        if (proposals.filter(item => item.status === 'pending').length >= state.config.maxPendingProposals) continue
+        // The cap protects the human review queue; automatic approval never queues.
+        if (!state.config.autoApply
+          && proposals.filter(item => item.status === 'pending').length >= state.config.maxPendingProposals) continue
+        const id = `proposal-${randomUUID()}`
         proposals.push({
-          id: `proposal-${randomUUID()}`,
+          id,
           ...draft,
           scope,
           projectRoot,
@@ -216,6 +221,7 @@ export class EvolutionStore {
           createdAt: now,
           updatedAt: now,
         })
+        created.push(id)
         proposalCount += 1
       }
       const learningRun: EvolutionLearningRun = {
@@ -224,10 +230,19 @@ export class EvolutionStore {
         proposalCount,
         createdAt: now,
       }
-      return {
-        value: proposalCount,
-        state: { ...state, proposals, runs: [...state.runs, learningRun] },
+      let next: EvolutionState = { ...state, proposals, runs: [...state.runs, learningRun] }
+      if (state.config.autoApply) {
+        for (const id of created) {
+          const proposal = next.proposals.find(item => item.id === id && item.status === 'pending')
+          if (proposal === undefined) continue
+          try {
+            next = this.applyProposal(next, proposal, now)
+          } catch {
+            // An automatic apply that stopped being valid stays pending for human review.
+          }
+        }
       }
+      return { value: proposalCount, state: next }
     })
   }
 
@@ -246,51 +261,56 @@ export class EvolutionStore {
         }
       }
 
-      const settings = [...state.settings]
-      const backup = this.backupOf(state, proposal.scope, proposal.projectRoot, 'proposal', `Before applying ${proposal.action} proposal`, now)
-      if (proposal.action === 'add') {
-        if (proposal.category === null || proposal.content === null || proposal.targetId !== null) {
-          throw new Error('The add proposal is no longer valid.')
-        }
-        settings.push({
-          id: `setting-${randomUUID()}`,
-          scope: proposal.scope,
-          projectRoot: proposal.projectRoot,
+      return { value: undefined, state: this.applyProposal(state, proposal, now) }
+    })
+  }
+
+  /** Apply one pending proposal to the learned instructions and snapshot the rules it replaces. */
+  private applyProposal(state: EvolutionState, proposal: EvolutionProposal, now: number): EvolutionState {
+    const settings = [...state.settings]
+    const backup = this.backupOf(state, proposal.scope, proposal.projectRoot, 'proposal', `Before applying ${proposal.action} proposal`, now)
+    if (proposal.action === 'add') {
+      if (proposal.category === null || proposal.content === null || proposal.targetId !== null) {
+        throw new Error('The add proposal is no longer valid.')
+      }
+      settings.push({
+        id: `setting-${randomUUID()}`,
+        scope: proposal.scope,
+        projectRoot: proposal.projectRoot,
+        category: proposal.category,
+        content: proposal.content,
+        evidence: proposal.evidence,
+        createdAt: now,
+        updatedAt: now,
+      })
+    } else {
+      const targetIndex = settings.findIndex(item => item.id === proposal.targetId)
+      if (targetIndex === -1) throw new Error('The proposal target changed; refresh the proposal list.')
+      const target = settings[targetIndex] as EvolutionSetting
+      if (!sameScope(target, proposal.scope, proposal.projectRoot)) {
+        throw new Error('The proposal target moved to a different instruction scope.')
+      }
+      if (proposal.action === 'update') {
+        if (proposal.category === null || proposal.content === null) throw new Error('The update proposal is incomplete.')
+        settings[targetIndex] = {
+          ...target,
           category: proposal.category,
           content: proposal.content,
-          evidence: proposal.evidence,
-          createdAt: now,
+          evidence: mergeEvidence(target.evidence, proposal.evidence),
           updatedAt: now,
-        })
+        }
       } else {
-        const targetIndex = settings.findIndex(item => item.id === proposal.targetId)
-        if (targetIndex === -1) throw new Error('The proposal target changed; refresh the proposal list.')
-        const target = settings[targetIndex] as EvolutionSetting
-        if (!sameScope(target, proposal.scope, proposal.projectRoot)) {
-          throw new Error('The proposal target moved to a different instruction scope.')
-        }
-        if (proposal.action === 'update') {
-          if (proposal.category === null || proposal.content === null) throw new Error('The update proposal is incomplete.')
-          settings[targetIndex] = {
-            ...target,
-            category: proposal.category,
-            content: proposal.content,
-            evidence: mergeEvidence(target.evidence, proposal.evidence),
-            updatedAt: now,
-          }
-        } else {
-          settings.splice(targetIndex, 1)
-        }
+        settings.splice(targetIndex, 1)
       }
-      const proposals = state.proposals.map(item => {
-        if (item.id === id) return { ...item, status: 'applied' as const, updatedAt: now }
-        if (proposal.targetId !== null && item.status === 'pending' && item.targetId === proposal.targetId) {
-          return { ...item, status: 'expired' as const, updatedAt: now }
-        }
-        return item
-      })
-      return { value: undefined, state: { ...state, settings, proposals, backups: [...state.backups, backup] } }
+    }
+    const proposals = state.proposals.map(item => {
+      if (item.id === proposal.id) return { ...item, status: 'applied' as const, updatedAt: now }
+      if (proposal.targetId !== null && item.status === 'pending' && item.targetId === proposal.targetId) {
+        return { ...item, status: 'expired' as const, updatedAt: now }
+      }
+      return item
     })
+    return { ...state, settings, proposals, backups: [...state.backups, backup] }
   }
 
   async mutateSetting(request: EvolutionSettingMutation): Promise<void> {

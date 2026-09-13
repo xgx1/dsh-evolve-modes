@@ -12,8 +12,8 @@ import {
   parseEvolutionLearningResult,
 } from '../src/evolution/prompt.ts'
 import type { EvolutionLearningInput } from '../src/evolution/prompt.ts'
-import type { EvolutionStore } from '../src/evolution/store.ts'
-import { EMPTY_EVOLUTION_STATE, migrateRenamedEvolutionState } from '../src/evolution/store.ts'
+import type { EvolutionProposalDraft } from '../src/evolution/store.ts'
+import { EMPTY_EVOLUTION_STATE, EvolutionStore, migrateRenamedEvolutionState } from '../src/evolution/store.ts'
 import { DEFAULT_EVOLUTION_CONFIG, evolutionStateSchema } from '../src/evolution/schema.ts'
 import { migrateRenamedModeRecords, normalizeRecord, recordFor, setReasoning } from '../src/storage.ts'
 import type { StoredEvolveModeRecord } from '../src/storage.ts'
@@ -57,6 +57,28 @@ function textResponse(text: string): StreamChunk[] {
     { type: 'text-delta', index: 0, text },
     { type: 'finish', reason: { kind: 'stop' } },
   ]
+}
+
+function fakeGlobal(initial: EvolutionState): DomainGlobal<EvolutionState> {
+  let value = initial
+  return {
+    get: () => value,
+    set: async (next: EvolutionState) => { value = next },
+  } as unknown as DomainGlobal<EvolutionState>
+}
+
+function proposalDraft(content: string): EvolutionProposalDraft {
+  return {
+    scope: 'global',
+    projectRoot: null,
+    action: 'add',
+    category: 'preference',
+    content,
+    targetId: null,
+    inference: 'explicit',
+    deleteReason: null,
+    evidence: [{ sessionId: 'session-a', turn: 1, eventSeq: 2, excerpt: content }],
+  }
 }
 
 function recordTable(
@@ -135,6 +157,56 @@ describe('self-evolution learning messages', () => {
     expect(messages).toHaveLength(99)
     expect(messages[0]).toMatchObject({ turn: 1, role: 'user', text: 'User 1' })
     expect(messages.at(-1)).toMatchObject({ turn: 50, role: 'user', text: 'Final user' })
+  })
+})
+
+describe('global auto-approve', () => {
+  it('defaults automatic approval to off for configuration written before the switch existed', () => {
+    const parsed = evolutionStateSchema.parse({
+      ...structuredClone(EMPTY_EVOLUTION_STATE),
+      config: { learningBatchSize: 5, maxPendingProposals: 20 },
+    })
+    expect(parsed.config).toEqual({ learningBatchSize: 5, maxPendingProposals: 20, autoApply: false })
+  })
+
+  it('applies a new proposal immediately and keeps its backup when auto-approve is on', async () => {
+    const store = new EvolutionStore(fakeGlobal(structuredClone(EMPTY_EVOLUTION_STATE)))
+    await store.setConfig({ ...DEFAULT_EVOLUTION_CONFIG, autoApply: true })
+    await store.recordLearningResult(
+      { sessionId: 'session-a', turns: [1], status: 'completed', error: null },
+      [proposalDraft('Prefers concise answers.')],
+    )
+
+    const state = store.state()
+    expect(state.proposals.map(item => item.status)).toEqual(['applied'])
+    expect(state.settings.map(item => item.content)).toEqual(['Prefers concise answers.'])
+    expect(state.backups.map(item => item.source)).toEqual(['proposal'])
+  })
+
+  it('applies a whole batch even when the pending review limit is one', async () => {
+    const store = new EvolutionStore(fakeGlobal(structuredClone(EMPTY_EVOLUTION_STATE)))
+    await store.setConfig({ learningBatchSize: 3, maxPendingProposals: 1, autoApply: true })
+    await store.recordLearningResult(
+      { sessionId: 'session-a', turns: [1], status: 'completed', error: null },
+      [proposalDraft('First preference.'), proposalDraft('Second preference.')],
+    )
+
+    const state = store.state()
+    expect(state.proposals.map(item => item.status)).toEqual(['applied', 'applied'])
+    expect(state.settings.map(item => item.content)).toEqual(['First preference.', 'Second preference.'])
+  })
+
+  it('keeps a new proposal pending when auto-approve is off', async () => {
+    const store = new EvolutionStore(fakeGlobal(structuredClone(EMPTY_EVOLUTION_STATE)))
+    await store.recordLearningResult(
+      { sessionId: 'session-a', turns: [1], status: 'completed', error: null },
+      [proposalDraft('Prefers concise answers.')],
+    )
+
+    const state = store.state()
+    expect(state.proposals.map(item => item.status)).toEqual(['pending'])
+    expect(state.settings).toEqual([])
+    expect(state.backups).toEqual([])
   })
 })
 

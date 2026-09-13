@@ -440,6 +440,8 @@ const en = {
   settingsProposalLimit: 'Pending proposal limit',
   settingsProposalLimitHint: 'New learning runs stop adding proposals when this limit is reached.',
   settingsProposalLimitInvalid: 'Pending proposal limit must be an integer from 1 to 1000.',
+  settingsAutoApply: 'Auto-approve proposals',
+  settingsAutoApplyHint: 'A new proposal is applied as soon as a learning run produces it. Every change is backed up first and can be restored below.',
   settingsProposals: 'Pending proposals',
   settingsNoProposals: 'No pending proposals.',
   settingsApply: 'Apply',
@@ -503,6 +505,8 @@ const zh: typeof en = {
   settingsProposalLimit: '待审阅提议上限',
   settingsProposalLimitHint: '达到上限后，新的学习运行不会继续添加提议。',
   settingsProposalLimitInvalid: '待审阅提议上限必须是 1 到 1000 的整数。',
+  settingsAutoApply: '自动同意提议',
+  settingsAutoApplyHint: '学习运行产出新提议后立即自动应用。每次应用前仍会创建备份，可在下方恢复。',
   settingsProposals: '待审阅提议',
   settingsNoProposals: '没有待审阅提议。',
   settingsApply: '应用',
@@ -628,6 +632,7 @@ function EvolveModesSettings({ close, evolution, t }: SettingsProps) {
   const [dashboard, setDashboard] = useState<EvolutionDashboard>()
   const [batchText, setBatchText] = useState('3')
   const [proposalLimitText, setProposalLimitText] = useState('100')
+  const [autoApply, setAutoApply] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string>()
@@ -642,6 +647,7 @@ function EvolveModesSettings({ close, evolution, t }: SettingsProps) {
       setDashboard(value)
       setBatchText(String(value.config.learningBatchSize))
       setProposalLimitText(String(value.config.maxPendingProposals))
+      setAutoApply(value.config.autoApply)
     }).catch(reason => {
       if (live) setError(reason instanceof Error ? reason.message : String(reason))
     }).finally(() => { if (live) setLoading(false) })
@@ -662,6 +668,7 @@ function EvolveModesSettings({ close, evolution, t }: SettingsProps) {
       setDashboard(value)
       setBatchText(String(value.config.learningBatchSize))
       setProposalLimitText(String(value.config.maxPendingProposals))
+      setAutoApply(value.config.autoApply)
     }).catch(reason => { setError(reason instanceof Error ? reason.message : String(reason)) }).finally(() => { setSaving(false) })
   }
 
@@ -669,7 +676,7 @@ function EvolveModesSettings({ close, evolution, t }: SettingsProps) {
   const settings = dashboard?.settings ?? []
   const backups = dashboard?.backups ?? []
 
-  const saveConfig = (): void => {
+  const saveConfig = (override?: { readonly autoApply?: boolean }): void => {
     const value = Number(batchText)
     if (!Number.isSafeInteger(value) || value < 1 || value > 100) {
       setError(t('settingsBatchInvalid'))
@@ -680,7 +687,7 @@ function EvolveModesSettings({ close, evolution, t }: SettingsProps) {
       setError(t('settingsProposalLimitInvalid'))
       return
     }
-    updateConfig({ learningBatchSize: value, maxPendingProposals })
+    updateConfig({ learningBatchSize: value, maxPendingProposals, autoApply: override?.autoApply ?? autoApply })
   }
 
   return <div style={settingsSectionStyle}>
@@ -692,11 +699,13 @@ function EvolveModesSettings({ close, evolution, t }: SettingsProps) {
     <section style={settingsBandStyle}>
       <h3 style={settingsHeadingStyle}>{t('settingsCurrent')}</h3>
       <div style={settingsGridStyle}>
-        <label style={settingsFieldStyle}><span style={settingsLabelStyle}>{t('settingsBatchSize')}</span><input style={settingsControlStyle} type="number" min={1} max={100} value={batchText} disabled={saving || loading} onChange={event => setBatchText(event.target.value)} onBlur={saveConfig} /></label>
-        <label style={settingsFieldStyle}><span style={settingsLabelStyle}>{t('settingsProposalLimit')}</span><input style={settingsControlStyle} type="number" min={1} max={1000} value={proposalLimitText} disabled={saving || loading} onChange={event => setProposalLimitText(event.target.value)} onBlur={saveConfig} /></label>
+        <label style={settingsFieldStyle}><span style={settingsLabelStyle}>{t('settingsBatchSize')}</span><input style={settingsControlStyle} type="number" min={1} max={100} value={batchText} disabled={saving || loading} onChange={event => setBatchText(event.target.value)} onBlur={() => saveConfig()} /></label>
+        <label style={settingsFieldStyle}><span style={settingsLabelStyle}>{t('settingsProposalLimit')}</span><input style={settingsControlStyle} type="number" min={1} max={1000} value={proposalLimitText} disabled={saving || loading} onChange={event => setProposalLimitText(event.target.value)} onBlur={() => saveConfig()} /></label>
+        <label style={{ ...settingsFieldStyle, alignItems: 'center', flexDirection: 'row', gap: 8 }}><input type="checkbox" checked={autoApply} disabled={saving || loading} onChange={event => { const next = event.target.checked; setAutoApply(next); saveConfig({ autoApply: next }) }} /><span style={settingsLabelStyle}>{t('settingsAutoApply')}</span></label>
       </div>
       <p style={settingsTextStyle}>{t('settingsBatchHint')}</p>
       <p style={settingsTextStyle}>{t('settingsProposalLimitHint')}</p>
+      <p style={settingsTextStyle}>{t('settingsAutoApplyHint')}</p>
     </section>
     {loading ? <p style={settingsTextStyle}>{t('settingsLoading')}</p> : <>
       <section style={settingsBandStyle}><h3 style={settingsHeadingStyle}>{t('settingsProposals')}</h3>{proposals.length === 0 ? <p style={settingsTextStyle}>{t('settingsNoProposals')}</p> : <div style={settingsListStyle}>{proposals.map(proposal => <ProposalRow key={proposal.id} proposal={proposal} t={t} saving={saving} onApply={() => mutate(() => evolution.proposal({ id: proposal.id, action: 'apply' }))} onDismiss={() => mutate(() => evolution.proposal({ id: proposal.id, action: 'dismiss' }))} />)}</div>}</section>

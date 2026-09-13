@@ -10,10 +10,12 @@ export type ReviewProfile = Exclude<QualityGate, 'off'>
 /** Session-level policy for learning durable instructions from completed turns. */
 export type EvolutionMode = 'off' | 'propose'
 
-/** Global self-evolution scheduling and review limits. */
+/** Global self-evolution scheduling, review limits, and automatic approval. */
 export interface EvolutionConfig {
   readonly learningBatchSize: number
   readonly maxPendingProposals: number
+  /** Apply every newly learned proposal immediately instead of queueing it for review. */
+  readonly autoApply: boolean
 }
 
 /**

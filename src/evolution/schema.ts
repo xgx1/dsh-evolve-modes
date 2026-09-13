@@ -3,11 +3,14 @@ import { z } from 'zod'
 export const evolutionConfigSchema = z.object({
   learningBatchSize: z.number().int().min(1).max(100),
   maxPendingProposals: z.number().int().min(1).max(1000),
+  // Absent in state written before the switch existed; the default keeps that state readable.
+  autoApply: z.boolean().default(false),
 })
 
 export const DEFAULT_EVOLUTION_CONFIG: z.infer<typeof evolutionConfigSchema> = {
   learningBatchSize: 3,
   maxPendingProposals: 100,
+  autoApply: false,
 }
 
 export const evolutionEvidenceSchema = z.object({

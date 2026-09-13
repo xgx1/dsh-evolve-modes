@@ -33,7 +33,7 @@ test('registers the browser entry through the DSH module loader', async () => {
     assert.equal(handoff?.id, '@graysilver/dsh-evolve-modes')
     assert.equal(typeof handoff?.factory, 'function')
     const exports = handoff.factory(() => ({}))
-    assert.deepEqual(exports.inject, ['slots', 'locale', 'remote', 'remote.commands', 'conversationEvents'])
+    assert.deepEqual(exports.inject, ['slots', 'locale', 'remote', 'remote.commands', 'uiConversation'])
     assert.equal(typeof exports.apply, 'function')
   } finally {
     delete globalThis.window
@@ -63,7 +63,7 @@ test('mounts reviews beneath their matching completed turn', async () => {
           createdAt: 123,
         }) } } }
       } } },
-      conversationEvents: { register: definition => { definitions.push(definition); return () => {} } },
+      uiConversation: { events: { register: definition => { definitions.push(definition); return () => {} } } },
       slots: {
         inject: (_name, effect) => effect(),
         register: (options) => { registrations.push(options); return () => {} },
@@ -112,7 +112,7 @@ test('exposes independent working, reasoning, quality, and evolution command con
         calls.push([sessionId, line, images])
         return { ok: true, value: { result: { kind: 'success', text: stateText } } }
       } } },
-      conversationEvents: { register: () => () => {} },
+      uiConversation: { events: { register: () => () => {} } },
       slots: {
         inject: (_name, effect) => effect(),
         register: (options) => { registrations.push(options); return () => {} },
@@ -200,7 +200,7 @@ test('ships migration, Plan enforcement, and both quality profiles', async () =>
   assert.doesNotMatch(patch, /dsh-plan-mode/u)
 })
 
-test('projects a verified first-principles request header into Trajectory', async () => {
+test('projects a verified first-principles system message into Trajectory', async () => {
   let handoff
   globalThis.window = { __ModuleLoader__: { load: (value) => { handoff = value } } }
   try {
@@ -212,7 +212,7 @@ test('projects a verified first-principles request header into Trajectory', asyn
       inject: (_dependencies, effect) => effect(ctx),
       locale: { register: () => () => {} },
       remote: { $mount: () => () => {}, commands: { execute: async () => ({ ok: true }) } },
-      conversationEvents: { register: value => { definitions.push(value); return () => {} } },
+      uiConversation: { events: { register: value => { definitions.push(value); return () => {} } } },
       slots: { inject: () => {}, register: () => () => {} },
     }
     plugin.apply(ctx)
@@ -221,26 +221,29 @@ test('projects a verified first-principles request header into Trajectory', asyn
 
     const prompt = 'For this task, reason from first principles. State the objective and success criteria, separate verified facts from assumptions, identify hard constraints, derive the solution from those facts, and describe how you will verify the result. Do not treat conventions or guesses as requirements.'
     const event = {
-      type: 'request/header',
+      type: 'system/message',
       seq: 22,
       time: 1234,
       data: {
-        header: {
-          config: { provider: 'test', model: 'test' },
-          system: `base\n\n${prompt}`,
+        turn: 2,
+        step: 1,
+        message: {
+          id: 'message-22',
+          role: 'system',
+          content: [{ type: 'text', text: `base\n\n${prompt}` }],
+          source: { kind: 'plugin', plugin: 'test' },
         },
-        reason: 'change',
       },
     }
     const location = { kind: 'step', turn: { turn: 2 }, step: { turn: 2, step: 1 } }
     assert.deepEqual(definition.match(event), { id: '22', role: 'start' })
     assert.equal(definition.match({
       ...event,
-      data: { ...event.data, header: { ...event.data.header, system: 'base' } },
+      data: { ...event.data, message: { ...event.data.message, content: [{ type: 'text', text: 'base' }] } },
     }), null)
     assert.equal(definition.match({
       ...event,
-      data: { ...event.data, header: { ...event.data.header, system: prompt.slice(0, -1) } },
+      data: { ...event.data, message: { ...event.data.message, content: [{ type: 'text', text: prompt.slice(0, -1) }] } },
     }), null)
 
     const match = { event, role: 'start', location }
@@ -264,7 +267,7 @@ test('projects a verified first-principles request header into Trajectory', asyn
   }
 })
 
-test('projects a verified grilling request header into Trajectory', async () => {
+test('projects a verified grilling system message into Trajectory', async () => {
   let handoff
   globalThis.window = { __ModuleLoader__: { load: (value) => { handoff = value } } }
   try {
@@ -276,7 +279,7 @@ test('projects a verified grilling request header into Trajectory', async () => 
       inject: (_dependencies, effect) => effect(ctx),
       locale: { register: () => () => {} },
       remote: { $mount: () => () => {}, commands: { execute: async () => ({ ok: true }) } },
-      conversationEvents: { register: value => { definitions.push(value); return () => {} } },
+      uiConversation: { events: { register: value => { definitions.push(value); return () => {} } } },
       slots: { inject: () => {}, register: () => () => {} },
     }
     plugin.apply(ctx)
@@ -291,22 +294,25 @@ After each reply, update the decision map and ask the next ready set of question
 
 When all relevant branches have been resolved, summarize the shared understanding and ask the user to confirm it explicitly. Do not implement, mutate external state, or otherwise act on the task before that confirmation. If the user has already confirmed the shared understanding for the current task, proceed according to the active working mode instead of restarting the interview.`
     const event = {
-      type: 'request/header',
+      type: 'system/message',
       seq: 23,
       time: 1235,
       data: {
-        header: {
-          config: { provider: 'test', model: 'test' },
-          system: `base\n\n${prompt}`,
+        turn: 2,
+        step: 2,
+        message: {
+          id: 'message-23',
+          role: 'system',
+          content: [{ type: 'text', text: `base\n\n${prompt}` }],
+          source: { kind: 'plugin', plugin: 'test' },
         },
-        reason: 'change',
       },
     }
     const location = { kind: 'step', turn: { turn: 2 }, step: { turn: 2, step: 2 } }
     assert.deepEqual(definition.match(event), { id: '23', role: 'start' })
     assert.equal(definition.match({
       ...event,
-      data: { ...event.data, header: { ...event.data.header, system: 'base' } },
+      data: { ...event.data, message: { ...event.data.message, content: [{ type: 'text', text: 'base' }] } },
     }), null)
 
     const match = { event, role: 'start', location }
@@ -342,7 +348,7 @@ test('projects only the approved learned-instruction block into Trajectory', asy
       inject: (_dependencies, effect) => effect(ctx),
       locale: { register: () => () => {} },
       remote: { $mount: () => () => {}, commands: { execute: async () => ({ ok: true }) } },
-      conversationEvents: { register: value => { definitions.push(value); return () => {} } },
+      uiConversation: { events: { register: value => { definitions.push(value); return () => {} } } },
       slots: { inject: () => {}, register: () => () => {} },
     }
     plugin.apply(ctx)
@@ -351,19 +357,25 @@ test('projects only the approved learned-instruction block into Trajectory', asy
 
     const learned = '<dsh-evolve-modes-learned-instructions>\n# Global learned instructions\n\n- Prefer Chinese\n</dsh-evolve-modes-learned-instructions>'
     const event = {
-      type: 'request/header',
+      type: 'system/message',
       seq: 31,
       time: 5678,
       data: {
-        header: { config: { provider: 'test', model: 'test' }, system: `base\n\n${learned}\n\ntail` },
-        reason: 'change',
+        turn: 3,
+        step: 1,
+        message: {
+          id: 'message-31',
+          role: 'system',
+          content: [{ type: 'text', text: `base\n\n${learned}\n\ntail` }],
+          source: { kind: 'plugin', plugin: 'test' },
+        },
       },
     }
     const location = { kind: 'step', turn: { turn: 3 }, step: { turn: 3, step: 1 } }
     assert.deepEqual(definition.match(event), { id: '31', role: 'start' })
     assert.equal(definition.match({
       ...event,
-      data: { ...event.data, header: { ...event.data.header, system: 'base' } },
+      data: { ...event.data, message: { ...event.data.message, content: [{ type: 'text', text: 'base' }] } },
     }), null)
     const match = { event, role: 'start', location }
     const state = definition.start({ matches: [match] }, match, {})

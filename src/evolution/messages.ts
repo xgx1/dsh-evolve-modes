@@ -21,7 +21,7 @@ export function evolutionMessages(agent: Agent, turns: readonly number[]): Evolu
   const userMessages: EvolutionLearningMessage[] = []
   const assistantByTurn = new Map<number, EvolutionLearningMessage>()
   let currentTurn: number | undefined
-  for (const event of agent.session.events) {
+  for (const event of agent.session.snapshotEvents()) {
     if (event.type === 'turn/start') {
       currentTurn = event.data.turn
       continue

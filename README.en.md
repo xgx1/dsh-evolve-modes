@@ -8,7 +8,7 @@ No fork of DeepSeek Harness. No duplicate agent loop. Install the plugin, choose
 
 > Release `0.4.0` supports DeepSeek Harness `0.1.1-rc.2`. If you remain on Harness `0.1.0-rc.6`, install plugin `0.3.1`.
 >
-> This fork (`xgx1/dsh-evolve-modes`) fixes the `deepFreeze` import change introduced when Harness `0.1.2-rc.1` moved it out of `@deepseek-ai/dsh-llm`, verified on `0.1.5-rc.2` (upstream issue #3).
+> This fork (`xgx1/dsh-evolve-modes`) is ported to Harness `0.1.5-rc.2`: `deepFreeze` now comes from `@deepseek-ai/dsh-util-values`, Trajectory projections read `system/message`, and the client registers through `uiConversation.events`; the `peerDependencies` floor is raised to `^0.1.5-rc.2` accordingly. Verified end to end (server load plus browser) on `0.1.5-rc.2` (upstream issue #3).
 
 [中文文档](README.md)
 
@@ -185,7 +185,7 @@ Quality review requires DSH's fork/subagent capability; self-evolution analysis 
 
 Starting with `0.3.2`, every plugin release updates this table and declares its machine-readable minimum Harness version through `peerDependencies`.
 
-This fork (`xgx1/dsh-evolve-modes`) imports `deepFreeze` from `@deepseek-ai/dsh-util-values`, so its minimum Harness version is `0.1.2-rc.1` (the first Harness release shipping that package); loading was verified on `0.1.5-rc.2`.
+This fork (`xgx1/dsh-evolve-modes`) has a `peerDependencies` floor of `0.1.5-rc.2`: the client registers Trajectory projections through `uiConversation.events` (renamed from `conversationEvents` in 0.1.5), the server imports `deepFreeze` from `@deepseek-ai/dsh-util-values` (moved out of `@deepseek-ai/dsh-llm` in 0.1.2), and projections match `system/message` events (the system prompt no longer rides `request/header`). Verified end to end on `0.1.5-rc.2`.
 
 Release `0.3.2` uses the command attachment argument and strict storage-domain types introduced by Harness `0.1.1-rc.2`, so it is not backward-compatible with `0.1.0-rc.6`. Pin both the plugin and Harness versions in production instead of relying on floating tags.
 

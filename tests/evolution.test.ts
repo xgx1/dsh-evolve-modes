@@ -30,7 +30,7 @@ function fakeAgent(events: readonly FakeEvent[]): Agent {
     options: { provider: 'fallback-provider', model: 'fallback-model', maxTokens: 1024 },
     session: {
       id: 'session-a',
-      events,
+      snapshotEvents: () => events,
       requestHeader: () => ({
         config: { provider: 'source-provider', model: 'source-model', maxTokens: 4096 },
       }),

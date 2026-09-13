@@ -17,7 +17,7 @@
 
 > 当前版本 `0.4.0` 支持 DeepSeek Harness `0.1.1-rc.2`。仍使用 Harness `0.1.0-rc.6` 时，请安装插件 `0.3.1`。
 >
-> 本 fork（`xgx1/dsh-evolve-modes`）修复了 Harness `0.1.2-rc.1` 起 `deepFreeze` 移出 `@deepseek-ai/dsh-llm` 的导入变更，已在 `0.1.5-rc.2` 上验证（上游 issue #3）。
+> 本 fork（`xgx1/dsh-evolve-modes`）已移植到 Harness `0.1.5-rc.2`：`deepFreeze` 改从 `@deepseek-ai/dsh-util-values` 导入、Trajectory 投影改读 `system/message`、客户端改用 `uiConversation.events`；`peerDependencies` 下限相应提到 `^0.1.5-rc.2`。已在 `0.1.5-rc.2` 上完成服务端加载与浏览器端联调验证（上游 issue #3）。
 
 ![dsh-evolve-modes](https://raw.githubusercontent.com/GraySilver/dsh-evolve-modes/main/assets/social-preview.png)
 
@@ -198,7 +198,7 @@ Concrete follow-up
 
 从 `0.3.2` 起，每次插件发布都会同步更新此表，并通过 `peerDependencies` 声明机器可读的最低 Harness 版本。
 
-本 fork（`xgx1/dsh-evolve-modes`）从 `@deepseek-ai/dsh-util-values` 导入 `deepFreeze`，因此最低 Harness 版本为 `0.1.2-rc.1`（该包首次随 Harness 发布）；已在 `0.1.5-rc.2` 上完成加载验证。
+本 fork（`xgx1/dsh-evolve-modes`）的 `peerDependencies` 下限为 `0.1.5-rc.2`：客户端从 `uiConversation.events` 注册 Trajectory 投影（0.1.5 起服务由 `conversationEvents` 改名），服务端从 `@deepseek-ai/dsh-util-values` 导入 `deepFreeze`（0.1.2 起从 `@deepseek-ai/dsh-llm` 移出），投影匹配 `system/message` 事件（系统提示词不再位于 `request/header`）。已在 `0.1.5-rc.2` 上完成加载与联调验证。
 
 `0.3.2` 使用了 Harness `0.1.1-rc.2` 新增的命令附件参数和严格 storage domain 类型，因此不向后兼容 `0.1.0-rc.6`。生产环境建议同时固定插件与 Harness 版本，不要依赖浮动标签。
 

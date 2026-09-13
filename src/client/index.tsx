@@ -1,17 +1,20 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
+import type {} from '@deepseek-ai/dsh-api-session-controller/client'
 import type {} from '@deepseek-ai/dsh-plan-mode/client'
 import evolveModesRemote from '../remote.ts'
 import type {
-  ClientContext,
   ContextMessageNode,
   ConversationLocation,
   ConversationNodeContext,
   ConversationNodeDefinition,
   ConversationViewNode,
-} from '@deepseek-ai/dsh-client-runtime/client'
+} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
-import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
+import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-slots'
 import {
@@ -29,7 +32,7 @@ import {
   MarkdownText,
   Menu,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { MarkdownLabels, MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime, InjectFace } from '@deepseek-ai/dsh-client-ui-slots'
 import { FIRST_PRINCIPLES, GRILLING } from '../prompt.ts'
 import type {
@@ -68,7 +71,7 @@ interface ControlFace {
 type ControlProps = PropsRuntime<'conversation.input.left'> & PropsLocale<'evolveModes'> & InjectFace<ControlFace>
 
 /** Required browser services for evolve-mode controls and Trajectory projection. */
-export const inject = ['slots', 'locale', 'remote', 'remote.commands', 'conversationEvents']
+export const inject = ['slots', 'locale', 'remote', 'remote.commands', 'uiConversation']
 
 const triggerStyle: CSSProperties = {
   alignItems: 'center',
@@ -278,10 +281,14 @@ function ReviewTail({ turn, review, t }: ReviewProps) {
     void review(turn.turn).then(value => { if (live) setItem(value) }).catch(() => { if (live) setItem(undefined) })
     return () => { live = false }
   }, [review, turn.turn])
+  const labels = useMemo<MarkdownLabels>(() => ({
+    code: { copyLabel: t('copy'), copiedLabel: t('copied') },
+    footnotes: t('markdownFootnotes'),
+  }), [t])
   if (item === undefined || item.text === '') return null
   const label = item.profile === 'general-review' ? t('generalReview') : t('acceptanceReview')
   const summary = item.status === 'completed' ? label : `${label} - ${t('unavailable')}`
-  return <details style={reviewStyle}><summary style={reviewSummaryStyle}><IconChecklistOutline14 /> {summary}</summary><div style={reviewBodyStyle}><div style={reviewMarkdownStyle}><MarkdownText text={item.text} /></div></div></details>
+  return <details style={reviewStyle}><summary style={reviewSummaryStyle}><IconChecklistOutline14 /> {summary}</summary><div style={reviewBodyStyle}><div style={reviewMarkdownStyle}><MarkdownText text={item.text} labels={labels} /></div></div></details>
 }
 
 function EvolveModeReviewCommandView() { return null }
@@ -314,16 +321,22 @@ function trajectoryContextNode(
   }
 }
 
+/** Rendered text of one `system/message` event. */
+type SystemMessageEvent = Extract<Parameters<ConversationNodeDefinition['match']>[0], { type: 'system/message' }>
+function systemMessageText(event: SystemMessageEvent): string {
+  return event.data.message.content.flatMap(block => block.type === 'text' ? [block.text] : []).join('')
+}
+
 const firstPrinciplesTrajectoryDefinition: ConversationNodeDefinition<ContextMessageNode> = {
   kind: 'evolve-mode-first-principles-injection',
   target: 'trajectory',
-  match: event => event.type === 'request/header'
-    && event.data.header.system?.includes(FIRST_PRINCIPLES) === true
+  match: event => event.type === 'system/message'
+    && systemMessageText(event).includes(FIRST_PRINCIPLES)
     ? { id: String(event.seq), role: 'start' }
     : null,
   start: (_context, match) => {
-    if (match.event.type !== 'request/header') {
-      throw new Error('first-principles Trajectory projection requires request/header')
+    if (match.event.type !== 'system/message') {
+      throw new Error('first-principles Trajectory projection requires system/message')
     }
     return {
       kind: 'context',
@@ -342,13 +355,13 @@ const firstPrinciplesTrajectoryDefinition: ConversationNodeDefinition<ContextMes
 const grillingTrajectoryDefinition: ConversationNodeDefinition<ContextMessageNode> = {
   kind: 'evolve-mode-grilling-injection',
   target: 'trajectory',
-  match: event => event.type === 'request/header'
-    && event.data.header.system?.includes(GRILLING) === true
+  match: event => event.type === 'system/message'
+    && systemMessageText(event).includes(GRILLING)
     ? { id: String(event.seq), role: 'start' }
     : null,
   start: (_context, match) => {
-    if (match.event.type !== 'request/header') {
-      throw new Error('grilling Trajectory projection requires request/header')
+    if (match.event.type !== 'system/message') {
+      throw new Error('grilling Trajectory projection requires system/message')
     }
     return {
       kind: 'context',
@@ -378,14 +391,14 @@ const learnedInstructionsTrajectoryDefinition: ConversationNodeDefinition<Contex
   kind: 'evolve-mode-learned-instructions-injection',
   target: 'trajectory',
   match: event => {
-    if (event.type !== 'request/header') return null
-    return learnedInstructionBlock(event.data.header.system) === undefined
+    if (event.type !== 'system/message') return null
+    return learnedInstructionBlock(systemMessageText(event)) === undefined
       ? null
       : { id: String(event.seq), role: 'start' }
   },
   start: (_context, match) => {
-    if (match.event.type !== 'request/header') throw new Error('learned-instructions Trajectory projection requires request/header')
-    const text = learnedInstructionBlock(match.event.data.header.system)
+    if (match.event.type !== 'system/message') throw new Error('learned-instructions Trajectory projection requires system/message')
+    const text = learnedInstructionBlock(systemMessageText(match.event))
     if (text === undefined) throw new Error('learned-instructions Trajectory projection matched without its marker block')
     return {
       kind: 'context',
@@ -460,6 +473,9 @@ const en = {
   settingsAdd: 'Add',
   unavailable: 'unavailable',
   error: 'Mode update failed',
+  copy: 'Copy',
+  copied: 'Copied',
+  markdownFootnotes: 'Footnotes',
 }
 const zh: typeof en = {
   execute: '正常',
@@ -520,6 +536,9 @@ const zh: typeof en = {
   settingsAdd: '添加',
   unavailable: '不可用',
   error: '模式更新失败',
+  copy: '复制',
+  copied: '已复制',
+  markdownFootnotes: '脚注',
 }
 type EvolveModesKey = keyof typeof en
 declare module '@deepseek-ai/dsh-client-ui-slots' { interface LocaleNamespaceMap { evolveModes: EvolveModesKey } }
@@ -708,9 +727,9 @@ function RuleRow({ setting, t, saving, onEdit, onDelete }: { setting: EvolutionD
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register('evolveModes', { en, zh }), 'dsh-evolve-modes: locale')
   ctx.effect(() => ctx.remote.$mount(evolveModesRemote), 'dsh-evolve-modes: evolution Remote')
-  ctx.conversationEvents.register(firstPrinciplesTrajectoryDefinition)
-  ctx.conversationEvents.register(grillingTrajectoryDefinition)
-  ctx.conversationEvents.register(learnedInstructionsTrajectoryDefinition)
+  ctx.uiConversation.events.register(firstPrinciplesTrajectoryDefinition)
+  ctx.uiConversation.events.register(grillingTrajectoryDefinition)
+  ctx.uiConversation.events.register(learnedInstructionsTrajectoryDefinition)
   const execute = async (sessionId: string, line: string): Promise<string> => {
     const response = await ctx.remote.commands.execute(sessionId as never, line, [])
     if (!response.ok) throw new Error(`${response.error.message} (${response.error.code})`)

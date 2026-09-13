@@ -79,13 +79,16 @@ function exitPlanText(argumentsText: string): string | undefined {
 }
 
 function currentTurnInput(agent: Agent, turn: number): ReviewInput | undefined {
-  const start = agent.session.events.findLastIndex(event => event.type === 'turn/start' && event.data.turn === turn)
+  // `snapshotEvents()` is the 0.1.5 in-memory history reader (deprecated for new
+  // harness code, but this plugin has no projection of its own yet).
+  const events = agent.session.snapshotEvents()
+  const start = events.findLastIndex(event => event.type === 'turn/start' && event.data.turn === turn)
   if (start === -1) return undefined
   const tasks: string[] = []
   const planCalls = new Map<string, string>()
   let answer = ''
   let approvedPlan = ''
-  for (const event of agent.session.events.slice(start + 1)) {
+  for (const event of events.slice(start + 1)) {
     if (event.type === 'user/message' && event.data.source.kind === 'user') {
       const text = textContent(event.data.content)
       if (text !== '') tasks.push(text)

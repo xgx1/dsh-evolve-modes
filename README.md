@@ -16,6 +16,8 @@
 插件不 fork DeepSeek Harness，不复制 Agent loop，也不修改核心代码。安装后，当前任务使用的组合始终显示在输入区旁；全局“自进化模式”设置则负责管理跨会话的学习提议和已批准规则。
 
 > 当前版本 `0.4.0` 支持 DeepSeek Harness `0.1.1-rc.2`。仍使用 Harness `0.1.0-rc.6` 时，请安装插件 `0.3.1`。
+>
+> 本 fork（`xgx1/dsh-evolve-modes`）修复了 Harness `0.1.2-rc.1` 起 `deepFreeze` 移出 `@deepseek-ai/dsh-llm` 的导入变更，已在 `0.1.5-rc.2` 上验证（上游 issue #3）。
 
 ![dsh-evolve-modes](https://raw.githubusercontent.com/GraySilver/dsh-evolve-modes/main/assets/social-preview.png)
 
@@ -195,6 +197,8 @@ Concrete follow-up
 | `0.3.0` 及更早版本 | 未重新验证 | 不再支持，建议升级 |
 
 从 `0.3.2` 起，每次插件发布都会同步更新此表，并通过 `peerDependencies` 声明机器可读的最低 Harness 版本。
+
+本 fork（`xgx1/dsh-evolve-modes`）从 `@deepseek-ai/dsh-util-values` 导入 `deepFreeze`，因此最低 Harness 版本为 `0.1.2-rc.1`（该包首次随 Harness 发布）；已在 `0.1.5-rc.2` 上完成加载验证。
 
 `0.3.2` 使用了 Harness `0.1.1-rc.2` 新增的命令附件参数和严格 storage domain 类型，因此不向后兼容 `0.1.0-rc.6`。生产环境建议同时固定插件与 Harness 版本，不要依赖浮动标签。
 

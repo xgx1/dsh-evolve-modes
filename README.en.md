@@ -7,6 +7,8 @@
 No fork of DeepSeek Harness. No duplicate agent loop. Install the plugin, choose a combination, and keep that decision visible in every session.
 
 > Release `0.4.0` supports DeepSeek Harness `0.1.1-rc.2`. If you remain on Harness `0.1.0-rc.6`, install plugin `0.3.1`.
+>
+> This fork (`xgx1/dsh-evolve-modes`) fixes the `deepFreeze` import change introduced when Harness `0.1.2-rc.1` moved it out of `@deepseek-ai/dsh-llm`, verified on `0.1.5-rc.2` (upstream issue #3).
 
 [中文文档](README.md)
 
@@ -182,6 +184,8 @@ Quality review requires DSH's fork/subagent capability; self-evolution analysis 
 | `0.3.0` and earlier | Not revalidated | Unsupported; upgrade recommended |
 
 Starting with `0.3.2`, every plugin release updates this table and declares its machine-readable minimum Harness version through `peerDependencies`.
+
+This fork (`xgx1/dsh-evolve-modes`) imports `deepFreeze` from `@deepseek-ai/dsh-util-values`, so its minimum Harness version is `0.1.2-rc.1` (the first Harness release shipping that package); loading was verified on `0.1.5-rc.2`.
 
 Release `0.3.2` uses the command attachment argument and strict storage-domain types introduced by Harness `0.1.1-rc.2`, so it is not backward-compatible with `0.1.0-rc.6`. Pin both the plugin and Harness versions in production instead of relying on floating tags.
 
